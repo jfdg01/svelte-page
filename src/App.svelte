@@ -3,7 +3,7 @@
 
   let count = 0;
   let disks = [];
-
+ // test
   async function fetchDisks() {
     const response = await fetch('http://localhost:8000/disks');
     disks = await response.json();
