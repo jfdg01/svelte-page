@@ -1,19 +1,14 @@
 <script>
   import { onMount } from 'svelte';
-  import { pb } from './lib/pocketbase';
+  // Removed: import { pb } from './lib/pocketbase';
 
   let count = 0;
   let disks = [];
 
   const loadDisks = async () => {
     try {
-      const disksData = await pb.collection('disks').getFullList({
-        expand: 'sub_stats',
-      });
-      disks = disksData.map(disk => ({
-        ...disk,
-        sub_stats: disk.expand?.sub_stats || [],
-      }));
+      const response = await fetch('http://localhost:8000/disks/');
+      disks = await response.json();
     } catch (error) {
       console.error('Error loading disks:', error);
     }
@@ -30,29 +25,24 @@
   onMount(loadDisks);
 
   let newDisk = {
-    main_stat_name: '',
-    main_stat_value: 0,
-    main_stat_level: 0,
-    sub_stats: [],
+    main_stat: {
+      name: '',
+      value: 0,
+      level: 0
+    },
+    sub_stats: []
   };
 
   const addDisk = async () => {
     try {
-      const createdDisk = await pb.collection('disks').create({
-        main_stat_name: newDisk.main_stat_name,
-        main_stat_value: newDisk.main_stat_value,
-        main_stat_level: newDisk.main_stat_level,
+      const response = await fetch('http://localhost:8000/disks/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newDisk)
       });
-
-      for (const sub of newDisk.sub_stats) {
-        await pb.collection('sub_stats').create({
-          disk_id: createdDisk.id,
-          name: sub.name,
-          value: sub.value,
-          level: sub.level,
-        });
-      }
-
+      const result = await response.json();
       alert('Disk added successfully!');
     } catch (error) {
       console.error('Error adding disk:', error);
@@ -82,9 +72,9 @@
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {#each disks as disk}
                   <tr>
-                    <td class="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-white">{disk.main_stat_name}</td>
-                    <td class="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-200">{disk.main_stat_value}</td>
-                    <td class="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-200">{disk.main_stat_level}</td>
+                    <td class="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-white">{disk.main_stat.name}</td>
+                    <td class="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-200">{disk.main_stat.value}</td>
+                    <td class="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-200">{disk.main_stat.level}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-200">
                       <ul>
                         {#each disk.sub_stats as sub}
@@ -105,9 +95,9 @@
       <div>
         <article class="rounded-xl border border-gray-700 bg-gray-800 p-4">
           <form on:submit|preventDefault={addDisk} class="space-y-2">
-            <input class="border p-2 w-full" bind:value={newDisk.main_stat_name} placeholder="Main Stat Name" />
-            <input class="border p-2 w-full" type="number" bind:value={newDisk.main_stat_value} placeholder="Main Stat Value" />
-            <input class="border p-2 w-full" type="number" bind:value={newDisk.main_stat_level} placeholder="Main Stat Level" />
+            <input class="border p-2 w-full" bind:value={newDisk.main_stat.name} placeholder="Main Stat Name" />
+            <input class="border p-2 w-full" type="number" bind:value={newDisk.main_stat.value} placeholder="Main Stat Value" />
+            <input class="border p-2 w-full" type="number" bind:value={newDisk.main_stat.level} placeholder="Main Stat Level" />
             <!-- Add logic to add sub-stats if necessary -->
             <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded">Add Disk</button>
           </form>
